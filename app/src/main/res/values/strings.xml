@@ -3,4 +3,8 @@
     <string name="title_activity_category">CategoryActivity</string>
     <string name="title_activity_meal_detail">MealDetailActivity</string>
     <string name="title_activity_meal_details">MealDetailsActivity</string>
+    <string name="starters">Starters</string>
+    <string name="main_courses">Main Courses</string>
+    <string name="desserts">Desserts</string>
+    <string name="title_activity_cart">Cart</string>
 </resources>

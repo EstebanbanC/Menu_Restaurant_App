@@ -5,29 +5,37 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.BottomAppBar
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import fr.isen.crispel.androiderestaurant.ui.theme.AndroidERestaurantTheme
 
 class HomeActivity : ComponentActivity() {
@@ -35,8 +43,11 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             AndroidERestaurantTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Scaffold()
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    HomeComponent()
                 }
             }
         }
@@ -45,25 +56,30 @@ class HomeActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Scaffold() {
-    androidx.compose.material3.Scaffold(
+fun HomeComponent() {
+    val context = LocalContext.current
+    Scaffold(
         topBar = {
             TopAppBar(
+                colors = topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary,
+                ),
                 title = {
-                    Text("Fauget's Restaurant")
+                    Text(stringResource(id = R.string.app_name))
                 }
             )
         },
-        bottomBar = {
-            BottomAppBar() {
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    text = "Bottom app bar",
-                )
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = {
+                    val intent = Intent(context, CartActivity::class.java)
+                    context.startActivity(intent)
+                }
+            ) {
+                Icon(Icons.Default.ShoppingCart, contentDescription = "Add")
             }
-        },
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -75,21 +91,21 @@ fun Scaffold() {
             Image(
                 modifier = Modifier
                     .fillMaxWidth(),
-                painter = painterResource(id = R.drawable.logo),
+                painter = painterResource(id = if (isSystemInDarkTheme()) R.drawable.logolight else R.drawable.logodark),
                 contentDescription = "logo",
             )
-            DisplayButton(
-                name = "Entrées",
+            DisplayCategoryButton(
+                name = stringResource(id = R.string.starters),
                 backgroundColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             )
-            DisplayButton(
-                name = "Plats",
+            DisplayCategoryButton(
+                name = stringResource(id = R.string.main_courses),
                 backgroundColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
             )
-            DisplayButton(
-                name = "Desserts",
+            DisplayCategoryButton(
+                name = stringResource(id = R.string.desserts),
                 backgroundColor = MaterialTheme.colorScheme.tertiary,
                 contentColor = MaterialTheme.colorScheme.onTertiary
             )
@@ -98,22 +114,28 @@ fun Scaffold() {
 }
 
 @Composable
-fun DisplayButton(name: String, backgroundColor: Color, contentColor: Color) {
+fun DisplayCategoryButton(name: String, backgroundColor: Color, contentColor: Color) {
     val context = LocalContext.current
     Button(
         modifier = Modifier
             .padding(16.dp, 0.dp)
-            .width(150.dp),
+            .width(250.dp),
         onClick = {
             val intent = Intent(context, CategoryActivity::class.java)
             intent.putExtra("categoryName", name)
+            intent.putExtra("backgroundColor", backgroundColor.toString())
+            intent.putExtra("contentColor", contentColor.toString())
             context.startActivity(intent)
         },
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
-            contentColor = contentColor)
+            contentColor = contentColor
+        )
     ) {
-        Text(name)
+        Text(
+            name,
+            style = TextStyle(fontSize = 25.sp),
+        )
     }
 }
 
@@ -124,7 +146,6 @@ fun GreetingPreview() {
         // A surface container using the 'background' color from the theme
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             Column {
-                Scaffold()
             }
         }
     }

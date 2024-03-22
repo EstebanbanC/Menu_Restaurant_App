@@ -1,8 +1,8 @@
 package fr.isen.crispel.androiderestaurant
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,7 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -46,7 +51,6 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import com.google.gson.JsonParser
 import fr.isen.crispel.androiderestaurant.ui.theme.AndroidERestaurantTheme
 import com.google.gson.JsonParser.parseString
 import kotlinx.coroutines.launch
@@ -56,8 +60,8 @@ class MealDetailsActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val item = intent.getStringExtra("item")
-        val backgroundColor = intent.getStringExtra("backgroundColor",)
-        val contentColor = intent.getStringExtra("contentColor",)
+        val backgroundColor = intent.getStringExtra("backgroundColor")
+        val contentColor = intent.getStringExtra("contentColor")
 
         setContent {
             AndroidERestaurantTheme {
@@ -85,6 +89,11 @@ fun DetailsComponent(item: String?, backgroundColor: String?, contentColor: Stri
     val imageUrl = itemObject.getAsJsonArray("images").get(0).asString
     val ingredients = itemObject.getAsJsonArray("ingredients")
     val context = LocalContext.current
+    val cartCount = remember { mutableIntStateOf(getCartCounter(context)) }
+
+    LaunchedEffect(key1 = true) {
+        cartCount.intValue = getCartCounter(context)
+    }
 
     Scaffold(
         topBar = {
@@ -99,13 +108,23 @@ fun DetailsComponent(item: String?, backgroundColor: String?, contentColor: Stri
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    val intent = Intent(context, CartActivity::class.java)
-                    context.startActivity(intent)
+            BadgedBox(
+                badge = {
+                    Badge(
+                        modifier = Modifier.offset(x = (-8).dp, y = 8.dp)
+                    ) {
+                        Text(cartCount.intValue.toString())
+                    }
                 }
             ) {
-                Icon(Icons.Default.ShoppingCart, contentDescription = "Add")
+                FloatingActionButton(
+                    onClick = {
+                        val intent = Intent(context, CartActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                ) {
+                    Icon(Icons.Default.ShoppingCart, contentDescription = "Cart")
+                }
             }
         }
     ) { innerPadding ->
@@ -154,7 +173,7 @@ fun DetailsComponent(item: String?, backgroundColor: String?, contentColor: Stri
 fun QuantitySelector(item: String?, backgroundColorString: String?, contentColorString: String?) {
     val itemObject = parseString(item).asJsonObject
     val price = itemObject.getAsJsonArray("prices").get(0).asJsonObject.get("price").asString
-    val counter = remember { mutableFloatStateOf(0F) }
+    val counter = remember { mutableFloatStateOf(1F) }
     val backgroundColor = stringToColor(backgroundColorString.toString())
     val contentColor = stringToColor(contentColorString.toString())
     val context = LocalContext.current
@@ -165,8 +184,8 @@ fun QuantitySelector(item: String?, backgroundColorString: String?, contentColor
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
-            .padding(bottom = 64.dp),
+            .padding(bottom = 64.dp)
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         SnackbarHost(snackbarHostState)
@@ -221,11 +240,14 @@ fun QuantitySelector(item: String?, backgroundColorString: String?, contentColor
                     itemJson.addProperty("quantity", counter.floatValue)
 
                     val file = File(context.filesDir, "cart.json")
-                    val existingCart = if (file.exists()) JsonParser.parseString(file.readText()).asJsonArray else JsonArray()
+                    val existingCart = if (file.exists()) parseString(file.readText()).asJsonArray else JsonArray()
 
                     existingCart.add(itemJson)
 
                     file.writeText(existingCart.toString())
+
+                    val currentCount = getCartCounter(context)
+                    updateCartCounter(context, currentCount + counter.floatValue.toInt())
 
                     counter.floatValue = 0F
 
@@ -252,6 +274,19 @@ fun QuantitySelector(item: String?, backgroundColorString: String?, contentColor
                     .fillMaxWidth()
             )
         }
+    }
+}
+
+fun getCartCounter(context: Context): Int {
+    val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    return sharedPreferences.getInt("cart_counter", 0)
+}
+
+fun updateCartCounter(context: Context, newCount: Int) {
+    val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    with (sharedPreferences.edit()) {
+        putInt("cart_counter", newCount)
+        apply()
     }
 }
 
